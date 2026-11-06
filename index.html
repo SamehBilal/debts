@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<title>Debts</title>
+	<meta name="description" content="Track what you owe — to friends, shops, cards and loans — with the place it happened, and a plan to pay it all off. Works offline; your data stays on your device.">
+	<meta name="theme-color" content="#f6c66b">
+	<meta name="color-scheme" content="light dark">
+	<link rel="manifest" href="manifest.webmanifest">
+	<link rel="icon" href="assets/img/icons/icon.svg" type="image/svg+xml">
+	<link rel="apple-touch-icon" href="assets/img/icons/icon-192.png">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="default">
+	<meta name="apple-mobile-web-app-title" content="Debts">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;600;800&display=swap">
+	<link rel="stylesheet" href="assets/css/app.css">
+	<script>
+		/* the theme before the first paint, so a dark page never flashes light */
+		try { var s = JSON.parse(localStorage.getItem('debts-state') || '{}').settings || {}; if (s.theme && s.theme !== 'auto') document.documentElement.setAttribute('data-theme', s.theme); if (s.lang === 'ar' || (!s.lang && /^ar\b/i.test(navigator.language))) { document.documentElement.lang = 'ar'; document.documentElement.dir = 'rtl'; } } catch (e) {}
+	</script>
+</head>
+<body>
+	<header class="top">
+		<a class="brand" href="#/"><img src="assets/img/icons/icon.svg" alt="" width="34" height="34"><span data-t="ديوني|Debts">Debts</span></a>
+		<div class="tools">
+			<button type="button" class="icon-btn install" id="install" hidden data-tl="ثبّت التطبيق|Install the app">⤓</button>
+			<button type="button" class="icon-btn" id="lang" data-tl="English|العربية">ع/E</button>
+		</div>
+	</header>
+
+	<main>
+		<section class="stage" id="stage">
+			<div class="jar" id="jar"></div>
+		</section>
+		<div id="view" class="view"></div>
+	</main>
+
+	<nav class="tabs" aria-label="Sections">
+		<a href="#/" data-route="home"><span aria-hidden="true">🏠</span><span data-t="الرئيسية|Home">Home</span></a>
+		<a href="#/plan" data-route="plan"><span aria-hidden="true">🧭</span><span data-t="الخطة|Plan">Plan</span></a>
+		<button type="button" class="fab" id="fab" data-tl="أضف دينًا|Add a debt">+</button>
+		<a href="#/map" data-route="map"><span aria-hidden="true">🗺️</span><span data-t="الأماكن|Places">Places</span></a>
+		<a href="#/settings" data-route="settings"><span aria-hidden="true">⚙️</span><span data-t="الإعدادات|Settings">Settings</span></a>
+	</nav>
+
+	<dialog id="sheet" class="sheet"></dialog>
+
+	<script src="assets/js/i18n.js"></script>
+	<script src="assets/js/notify.js"></script>
+	<script src="assets/js/store.js"></script>
+	<script src="assets/js/plan.js"></script>
+	<script src="assets/js/places.js"></script>
+	<script src="assets/js/jar.js"></script>
+	<script src="assets/js/app.js"></script>
+	<script src="assets/js/pwa.js"></script>
+</body>
+</html>

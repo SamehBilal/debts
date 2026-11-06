@@ -1,0 +1,29 @@
+{
+	"id": "./",
+	"name": "Debts — ديوني",
+	"short_name": "Debts",
+	"description": "Track what you owe — to friends, shops, cards and loans — with the place it happened, and a plan to pay it all off. Works offline; your data stays on your device. — سجّل ديونك ومكان كل دين، وخطة لسدادها. يعمل دون إنترنت وبياناتك على جهازك.",
+	"lang": "en",
+	"dir": "auto",
+	"start_url": "./index.html?source=pwa",
+	"scope": "./",
+	"display": "standalone",
+	"display_override": ["standalone", "minimal-ui"],
+	"orientation": "portrait",
+	"background_color": "#fbf3df",
+	"theme_color": "#f6c66b",
+	"categories": ["finance", "productivity", "lifestyle"],
+	"icons": [
+		{ "src": "assets/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+		{ "src": "assets/img/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+		{ "src": "assets/img/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+		{ "src": "assets/img/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+		{ "src": "assets/img/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+	],
+	"shortcuts": [
+		{ "name": "Add a debt — أضف دينًا", "short_name": "Add", "url": "./index.html?source=pwa#/add", "icons": [{ "src": "assets/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+		{ "name": "Payoff plan — خطة السداد", "short_name": "Plan", "url": "./index.html?source=pwa#/plan", "icons": [{ "src": "assets/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+		{ "name": "Places — الأماكن", "short_name": "Places", "url": "./index.html?source=pwa#/map", "icons": [{ "src": "assets/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
+	],
+	"prefer_related_applications": false
+}
