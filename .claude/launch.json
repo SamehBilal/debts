@@ -4,8 +4,20 @@
     {
       "name": "debts",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["tools/serve.js", "5180"],
+      "runtimeArgs": [
+        "tools/serve.js",
+        "5180"
+      ],
       "port": 5180
+    },
+    {
+      "name": "debts-alt",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "tools/serve.js",
+        "5191"
+      ],
+      "port": 5191
     }
   ]
 }

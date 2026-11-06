@@ -39,13 +39,21 @@
 			var intLen = parts.filter(function (p) { return p.type === 'integer'; }).reduce(function (s, p) { return s + p.value.length; }, 0);
 			var k = intLen + 1, html = '';
 			low = cents ? 0 : 2;
+			/* the digits and their separators sit in one left-to-right run (as numbers read in Arabic too);
+			   the currency sign and spaces stay in the page's direction, on whichever side the language puts them */
+			var inNum = false;
+			var num = function (on) { if (on !== inNum) { html += on ? '<span class="num" dir="ltr">' : '</span>'; inNum = on; } };
 			parts.forEach(function (p) {
+				var numeric = p.type === 'integer' || p.type === 'fraction' || p.type === 'group' || p.type === 'decimal';
+				if (p.type === 'minusSign') return;
+				num(numeric);
 				if (p.type === 'integer') for (var i = 0; i < p.value.length; i++) { html += '<span class="reel" data-k="' + k + '" aria-hidden="true">' + strip + '</span>'; k--; }
 				else if (p.type === 'fraction') for (var j = 0; j < p.value.length; j++) html += '<span class="reel" data-k="' + (1 - j) + '" aria-hidden="true">' + strip + '</span>';
 				else if (p.type === 'group') html += '<span class="sep" data-fold="' + (k + 1) + '" aria-hidden="true">' + esc(p.value) + '</span>';
-				else if (p.type === 'minusSign') return;
-				else html += '<span class="lit" aria-hidden="true">' + esc(p.value) + '</span>';
+				else if (p.type === 'decimal') html += '<span class="sep dec" aria-hidden="true">' + esc(p.value) + '</span>';
+				else html += '<span class="lit" aria-hidden="true">' + esc(p.value.trim() ? p.value : ' ') + '</span>';
 			});
+			num(false);
 			el.innerHTML = html + '<span class="sr" role="status"></span>';
 			reels = [].slice.call(el.querySelectorAll('.reel')).map(function (r) { return { el: r, k: +r.getAttribute('data-k'), strip: r.firstChild }; });
 			folds = [].slice.call(el.querySelectorAll('.sep[data-fold]')).map(function (s) { return { el: s, k: +s.getAttribute('data-fold') }; });

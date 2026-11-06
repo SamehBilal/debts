@@ -21,9 +21,10 @@
 		{ "src": "assets/img/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
 	],
 	"shortcuts": [
-		{ "name": "Add a debt — أضف دينًا", "short_name": "Add", "url": "./index.html?source=pwa#/add", "icons": [{ "src": "assets/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
-		{ "name": "Payoff plan — خطة السداد", "short_name": "Plan", "url": "./index.html?source=pwa#/plan", "icons": [{ "src": "assets/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
-		{ "name": "Places — الأماكن", "short_name": "Places", "url": "./index.html?source=pwa#/map", "icons": [{ "src": "assets/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
+		{ "name": "Add a debt — أضف دينًا", "short_name": "Add", "url": "./index.html?source=pwa&do=add", "icons": [{ "src": "assets/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+		{ "name": "Pay — ادفع", "short_name": "Pay", "url": "./index.html?source=pwa&do=pay", "icons": [{ "src": "assets/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+		{ "name": "Payoff plan — خطة السداد", "short_name": "Plan", "url": "./index.html?source=pwa#plan", "icons": [{ "src": "assets/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+		{ "name": "Places — الأماكن", "short_name": "Places", "url": "./index.html?source=pwa#places", "icons": [{ "src": "assets/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
 	],
 	"prefer_related_applications": false
 }
