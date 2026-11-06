@@ -69,6 +69,21 @@
 		return out.join(L(' و', ' '));
 	};
 
+	/* the pieces of a formatted number (digits, separators, the currency sign), for the rolling reels
+	   (roller.js); cents shows the two decimals */
+	I18n.moneyParts = function (n, cents) {
+		var opts = { style: 'currency', currency: I18n.currency, currencyDisplay: 'narrowSymbol', minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 };
+		try { return nf('mp' + (cents ? 'c' : ''), opts).formatToParts(Math.abs(n)); }
+		catch (e) { return [{ type: 'integer', value: String(Math.round(Math.abs(n))) }, { type: 'literal', value: ' ' + I18n.currency }]; }
+	};
+	I18n.pctParts = function (n) { return nf('pp', { style: 'percent', maximumFractionDigits: 0 }).formatToParts(Math.max(0, n) / 100); };
+	/* this language's digits, 0 to 9 */
+	I18n.digits = function () {
+		var f = nf('d', { useGrouping: false }), out = [];
+		for (var i = 0; i < 10; i++) out.push(f.format(i));
+		return out;
+	};
+
 	I18n.esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
 
 	window.I18n = I18n;

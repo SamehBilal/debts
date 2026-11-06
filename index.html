@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 	<title>Debts</title>
 	<meta name="description" content="Track what you owe — to friends, shops, cards and loans — with the place it happened, and a plan to pay it all off. Works offline; your data stays on your device.">
-	<meta name="theme-color" content="#f6c66b">
+	<meta name="theme-color" content="#f4f8f2">
 	<meta name="color-scheme" content="light dark">
 	<link rel="manifest" href="manifest.webmanifest">
 	<link rel="icon" href="assets/img/icons/icon.svg" type="image/svg+xml">
@@ -18,33 +18,70 @@
 	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;600;800&display=swap">
 	<link rel="stylesheet" href="assets/css/app.css">
 	<script>
-		/* the theme before the first paint, so a dark page never flashes light */
+		/* the theme and language before the first paint, so nothing flashes */
 		try { var s = JSON.parse(localStorage.getItem('debts-state') || '{}').settings || {}; if (s.theme && s.theme !== 'auto') document.documentElement.setAttribute('data-theme', s.theme); if (s.lang === 'ar' || (!s.lang && /^ar\b/i.test(navigator.language))) { document.documentElement.lang = 'ar'; document.documentElement.dir = 'rtl'; } } catch (e) {}
 	</script>
 </head>
 <body>
 	<header class="top">
-		<a class="brand" href="#/"><img src="assets/img/icons/icon.svg" alt="" width="34" height="34"><span data-t="ديوني|Debts">Debts</span></a>
+		<a class="brand" href="#top"><img src="assets/img/icons/icon.svg" alt="" width="32" height="32"><span data-t="ديوني|Debts">Debts</span></a>
 		<div class="tools">
-			<button type="button" class="icon-btn install" id="install" hidden data-tl="ثبّت التطبيق|Install the app">⤓</button>
+			<button type="button" class="icon-btn" id="install" hidden data-tl="ثبّت التطبيق|Install the app">⤓</button>
+			<button type="button" class="icon-btn" id="theme" data-tl="المظهر|Theme"></button>
 			<button type="button" class="icon-btn" id="lang" data-tl="English|العربية">ع/E</button>
 		</div>
 	</header>
+	<nav class="jump" aria-label="Sections">
+		<a href="#debts" data-t="الديون|Debts">Debts</a>
+		<a href="#plan" data-t="الخطة|Plan">Plan</a>
+		<a href="#places" data-t="الأماكن|Places">Places</a>
+		<a href="#settings" data-t="الإعدادات|Settings">Settings</a>
+	</nav>
 
-	<main>
-		<section class="stage" id="stage">
+	<main id="top">
+		<!-- the man, his sack, and what is owed on rolling reels -->
+		<section class="stage">
 			<div class="jar" id="jar"></div>
+			<div class="owed">
+				<span class="owed-cap" data-t="المتبقي عليك|Still owed">Still owed</span>
+				<span class="owed-num" id="owed"></span>
+				<span class="owed-sub" id="owed-sub"></span>
+			</div>
 		</section>
-		<div id="view" class="view"></div>
+
+		<!-- add or pay: who, how much (reels, steppers, the ruler, ready amounts), then one tap -->
+		<section class="composer" id="composer" hidden aria-labelledby="composer-title">
+			<h2 class="sr" id="composer-title"></h2>
+			<div class="seg mode" role="radiogroup">
+				<button type="button" role="radio" data-mode="pay" class="m-pay"><span aria-hidden="true">✓</span> <span data-t="ادفع|Pay">Pay</span></button>
+				<button type="button" role="radio" data-mode="add" class="m-add"><span aria-hidden="true">＋</span> <span data-t="دين جديد|Add debt">Add debt</span></button>
+			</div>
+			<div class="who" id="who"></div>
+			<div class="new-fields" id="new-fields"></div>
+			<div class="counter">
+				<button type="button" class="step minus" data-tl="أقل|Less"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+				<button type="button" class="value" id="amount" data-tl="اسحب لأعلى أو لأسفل، أو اضغط لتكتب المبلغ|Drag up or down, or tap to type the amount"></button>
+				<button type="button" class="step plus" data-tl="أكثر|More"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
+				<input type="number" class="type-in" id="type-in" inputmode="decimal" min="0" step="any" hidden>
+			</div>
+			<div id="ruler" aria-labelledby="composer-title"></div>
+			<p class="hint-row"><span class="hint h-drag" data-t="↔ اسحب المسطرة أو ارمها|↔ drag the ruler, or flick it">↔ drag the ruler, or flick it</span></p>
+			<div class="chips" id="ready"></div>
+			<div class="steps" id="steps"></div>
+			<button type="button" class="btn big confirm" id="confirm"></button>
+		</section>
+
+		<section class="block" id="debts" aria-labelledby="debts-h"></section>
+		<section class="block" id="plan" aria-labelledby="plan-h"></section>
+		<section class="block" id="places" aria-labelledby="places-h"></section>
+		<section class="block" id="settings" aria-labelledby="settings-h"></section>
 	</main>
 
-	<nav class="tabs" aria-label="Sections">
-		<a href="#/" data-route="home"><span aria-hidden="true">🏠</span><span data-t="الرئيسية|Home">Home</span></a>
-		<a href="#/plan" data-route="plan"><span aria-hidden="true">🧭</span><span data-t="الخطة|Plan">Plan</span></a>
-		<button type="button" class="fab" id="fab" data-tl="أضف دينًا|Add a debt">+</button>
-		<a href="#/map" data-route="map"><span aria-hidden="true">🗺️</span><span data-t="الأماكن|Places">Places</span></a>
-		<a href="#/settings" data-route="settings"><span aria-hidden="true">⚙️</span><span data-t="الإعدادات|Settings">Settings</span></a>
-	</nav>
+	<!-- the ready buttons, always in reach -->
+	<div class="dock">
+		<button type="button" class="btn dock-add" data-open="add"><span aria-hidden="true">＋</span> <span data-t="أضف دينًا|Add debt">Add debt</span></button>
+		<button type="button" class="btn dock-pay" data-open="pay"><span aria-hidden="true">✓</span> <span data-t="ادفع|Pay">Pay</span></button>
+	</div>
 
 	<dialog id="sheet" class="sheet"></dialog>
 
@@ -53,6 +90,7 @@
 	<script src="assets/js/store.js"></script>
 	<script src="assets/js/plan.js"></script>
 	<script src="assets/js/places.js"></script>
+	<script src="assets/js/roller.js"></script>
 	<script src="assets/js/jar.js"></script>
 	<script src="assets/js/app.js"></script>
 	<script src="assets/js/pwa.js"></script>

@@ -89,8 +89,9 @@
 
 	/* every debt with a place, on one map */
 	function overview(el, debts, onOpen) {
+		var api = { map: null };
 		leaflet().then(function (Lf) {
-			var map = Lf.map(el).setView([30.0444, 31.2357], 3);
+			var map = api.map = Lf.map(el).setView([30.0444, 31.2357], 3);
 			Lf.tileLayer(TILES, { maxZoom: 19, attribution: ATTR, crossOrigin: true }).addTo(map);
 			var pts = [];
 			debts.forEach(function (d) {
@@ -116,6 +117,7 @@
 				}).catch(function () {});
 			});
 		}).catch(function () { failMap(el); });
+		return api;
 	}
 
 	function allowed() {

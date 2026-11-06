@@ -114,6 +114,7 @@
 	Store.addDebt = function (data) {
 		var d = cleanDebt(Object.assign({}, data, { id: uid(), entries: [], created: new Date().toISOString() }));
 		Store.state.debts.unshift(d);
+		Store.last = { debt: d.id, type: 'new', amount: d.amount };
 		commit('add', d);
 		return d;
 	};
@@ -141,7 +142,10 @@
 		if (!d || !(amount > 0)) return null;
 		if (type === 'pay') amount = Math.min(amount, Store.balance(d));
 		if (!(amount > 0)) return null;
-		d.entries.push({ id: uid(), type: type, amount: amount, date: date || today(), note: String(note || '').slice(0, 200) });
+		var entry = { id: uid(), type: type, amount: amount, date: date || today(), note: String(note || '').slice(0, 200) };
+		d.entries.push(entry);
+		/* the last entry, so a quick payment can be undone */
+		Store.last = { debt: d.id, entry: entry.id, amount: amount, type: type };
 		d.entries.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
 		d.updated = new Date().toISOString();
 		syncClosed(d);
