@@ -69,8 +69,8 @@
 		owed.set(total);
 		$('#owed-sub').innerHTML = total <= 0 ? (S.state.debts.length ? L('لا شيء عليك 🎉', 'You owe nothing 🎉') : L('سجّل أول دين بالزر «أضف دينًا»', 'Add your first debt with «Add debt»'))
 			: p.ok && p.months ? L('حر في ', 'Debt-free by ') + '<b>' + esc(I18n.month(p.end)) + '</b>' + (st.budget ? ' · ' + money(st.budget) + L(' شهريًا', '/mo') : '')
-			: p.reason === 'toolow' ? '<a href="#plan">' + L('الميزانية لا تكفي', 'Budget too small') + '</a>'
-			: '<a href="#plan">' + L('حدد ميزانية شهرية لترى متى تتحرر', 'Set a monthly budget to see when you’re free') + '</a>';
+			: p.reason === 'toolow' ? '<button type="button" class="linkish" data-panel="plan">' + L('الميزانية لا تكفي', 'Budget too small') + '</button>'
+			: '<button type="button" class="linkish" data-panel="plan">' + L('حدد ميزانية شهرية لترى متى تتحرر', 'Set a monthly budget to see when you’re free') + '</button>';
 		var pieces = S.open().filter(function (d) { return S.balance(d) > 0; }).map(function (d) {
 			var n = S.dueIn(d), bal = S.balance(d);
 			return { id: d.id, value: bal, icon: KINDS[d.kind].icon, tone: n != null && n < 0 ? 'late' : n != null && n <= 3 ? 'soon' : 'ok', label: d.name + ' · ' + money(bal) };
@@ -97,7 +97,7 @@
 			var small = open.slice().sort(function (a, b) { return S.balance(a) - S.balance(b); })[0];
 			if (open.length > 1 && small && (!nd || small.id !== nd.id || next.now < S.balance(small)))
 				out.push('<button type="button" class="scene" data-quick="' + small.id + '" data-amt="' + S.balance(small) + '"><span aria-hidden="true">🎯</span> ' + L('اقفل الأصغر: ', 'Close the smallest: ') + esc(short(small.name)) + ' · ' + money(S.balance(small)) + '</button>');
-			if (!S.state.settings.budget) out.push('<a class="scene ghost" href="#plan"><span aria-hidden="true">📅</span> ' + L('حدد ميزانية شهرية', 'Set a monthly budget') + '</a>');
+			if (!S.state.settings.budget) out.push('<button type="button" class="scene ghost" data-panel="plan"><span aria-hidden="true">📅</span> ' + L('حدد ميزانية شهرية', 'Set a monthly budget') + '</button>');
 		}
 		$('#scenes').innerHTML = out.join('');
 	}
@@ -256,7 +256,7 @@
 			if (inp.value !== '') setAmount(+inp.value);
 		}
 		inp.addEventListener('blur', done);
-		inp.onkeydown = function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); inp.blur(); } else if (ev.key === 'Escape') { inp.value = ''; inp.blur(); } };
+		inp.onkeydown = function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); inp.blur(); } else if (ev.key === 'Escape') { ev.preventDefault(); inp.value = ''; inp.blur(); } };
 	}
 
 	function openComposer(mode, id, amt) {
@@ -268,7 +268,7 @@
 		} else C.target = id && S.get(id) ? id : '';
 		if (!id) { C.name = ''; C.place = null; }
 		C.open = true;
-		composer.hidden = false;
+		Modal.open($('#m-compose'), { onClose: function () { C.open = false; } });
 		var d = target();
 		C.step = mode === 'pay' && d ? Math.max(1, Math.min(100, niceStep(S.balance(d)) / 5)) : 1;
 		drawComposer(true);
@@ -278,9 +278,8 @@
 		}
 		ruler.set(0, true);
 		setAmount(amt);
-		requestAnimationFrame(function () { composer.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' }); });
 	}
-	function closeComposer() { C.open = false; composer.hidden = true; }
+	function closeComposer() { C.open = false; Modal.hide($('#m-compose')); }
 
 	function drawComposer(full) {
 		if (!C.open) return;
@@ -351,7 +350,6 @@
 		}
 		var last = S.last;
 		closeComposer();
-		window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 		undoNote(last);
 	}
 	/* «paid 50 to Ahmed · Undo» */
@@ -390,7 +388,7 @@
 				.catch(function () { Notify(L('تعذّر تحديد موقعك.', 'Couldn’t find your location.'), { type: 'warning' }); C.name = ($('#new-name') || {}).value || C.name; drawComposer(true); });
 		}
 		else if (b.id === 'confirm') confirm();
-		else if (b.hasAttribute('data-shut')) closeComposer();
+		else if (b.hasAttribute('data-shut')) Modal.close($('#m-compose'));
 	});
 	composer.insertAdjacentHTML('afterbegin', '<button type="button" class="icon-btn shut" data-shut data-tl="إغلاق|Close" aria-label="Close">×</button>');
 
@@ -559,8 +557,13 @@
 		if (!m || placesMap) return;
 		placesMap = Places.overview(m, S.state.debts, function (id) { openDetail(id); });
 	}
-	/* the map (and Leaflet) only loads once the section is on screen */
-	new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { placesSeen = true; mountMap(); } }); }, { rootMargin: '200px' }).observe($('#places'));
+	/* the sections open as modals out of their buttons; the map (and Leaflet) loads once Places has opened */
+	function openPanel(name) {
+		Modal.open($('#m-' + name), name === 'places' ? { onOpen: function () {
+			placesSeen = true; mountMap();
+			if (placesMap && placesMap.map) placesMap.map.invalidateSize();
+		} } : null);
+	}
 
 	/* ---------- settings ---------- */
 
@@ -588,14 +591,15 @@
 
 	function openSheet(html, onReady) {
 		sheet.innerHTML = '<form method="dialog" class="sheet-body">' + html + '</form>';
-		if (sheet.showModal) { if (!sheet.open) sheet.showModal(); } else sheet.setAttribute('open', '');
+		Modal.open(sheet);
 		var first = sheet.querySelector('[autofocus]');
 		if (first && !matchMedia('(pointer: coarse)').matches) first.focus();
 		if (onReady) onReady(sheet.querySelector('form'));
 	}
-	function closeSheet() { if (sheet.close && sheet.open) sheet.close(); else sheet.removeAttribute('open'); sheet.innerHTML = ''; sheetDebt = ''; }
+	/* the sheet's content stays while it shrinks away, and goes when it has closed */
+	function closeSheet() { Modal.hide(sheet); sheetDebt = ''; }
 	var sheetDebt = '';
-	sheet.addEventListener('click', function (ev) { if (ev.target === sheet || ev.target.closest('[data-close]')) { ev.preventDefault(); closeSheet(); } });
+	sheet.addEventListener('click', function (ev) { if (ev.target !== sheet && ev.target.closest('[data-close]')) { ev.preventDefault(); sheetDebt = ''; Modal.close(sheet); } });
 	sheet.addEventListener('close', function () { sheet.innerHTML = ''; sheetDebt = ''; });
 
 	function openDetail(id) {
@@ -701,7 +705,7 @@
 					if (!data.name || !(data.amount > 0)) return;
 					closeSheet();
 					if (editing) { S.updateDebt(d.id, data); Notify(L('حُفظ.', 'Saved.'), { type: 'success', ttl: 1800 }); }
-					else { S.addDebt(data); closeComposer(); undoNote(S.last); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+					else { S.addDebt(data); closeComposer(); undoNote(S.last); }
 				});
 			});
 	}
@@ -710,7 +714,7 @@
 
 	function quickPay(id, amt) {
 		closeSheet();
-		if (S.addEntry(id, 'pay', amt)) { undoNote(S.last); window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }
+		if (S.addEntry(id, 'pay', amt)) undoNote(S.last);
 	}
 	document.addEventListener('click', function (ev) {
 		var b = ev.target.closest('button, [data-compose]');
@@ -718,6 +722,7 @@
 		var g = function (a) { return b.getAttribute(a); };
 		if (b.hasAttribute('data-open')) openComposer(g('data-open'));
 		else if (b.hasAttribute('data-scene-kind')) { C.kind = g('data-scene-kind'); openComposer('add'); }
+		else if (b.hasAttribute('data-panel')) openPanel(g('data-panel'));
 		else if (b.hasAttribute('data-compose')) { closeSheet(); openComposer(g('data-compose'), g('data-id') || ''); }
 		else if (b.hasAttribute('data-quick')) quickPay(g('data-quick'), +g('data-amt'));
 		else if (b.hasAttribute('data-detail')) openDetail(g('data-detail'));
@@ -818,18 +823,6 @@
 			return '<li><span><b>' + esc(x.debt.name) + '</b> · ' + money(S.balance(x.debt)) + ' <small>' + Places.fmtDistance(x.m) + '</small></span><button type="button" class="chip-btn all" data-quick="' + x.debt.id + '" data-amt="' + S.balance(x.debt) + '">' + L('ادفع الآن', 'Pay now') + '</button></li>';
 		}).join('') + '</ul></div>' : '';
 	}
-
-	/* the section in view lights up in the jump bar */
-	var jumps = document.querySelectorAll('.jump a');
-	new IntersectionObserver(function (es) {
-		es.forEach(function (e) {
-			if (!e.isIntersecting) return;
-			jumps.forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id); });
-		});
-	}, { rootMargin: '-45% 0px -50% 0px' }).observe($('#debts'));
-	['#plan', '#places', '#settings'].forEach(function (s) {
-		new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) jumps.forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === s); }); }); }, { rootMargin: '-45% 0px -50% 0px' }).observe($(s));
-	});
 
 	/* ---------- start ---------- */
 

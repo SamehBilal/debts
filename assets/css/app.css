@@ -68,7 +68,8 @@ html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-t
 body {
 	margin: 0; background: var(--bg); color: var(--text);
 	font-size: 16px; line-height: 1.5;
-	padding-bottom: calc(92px + env(safe-area-inset-bottom));
+	/* one screen: nothing scrolls but the modals */
+	display: flex; flex-direction: column; height: 100vh; height: 100svh; overflow: hidden; overscroll-behavior: none;
 	-webkit-tap-highlight-color: transparent;
 	transition: background-color .3s, color .3s;
 }
@@ -83,7 +84,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ---------- frame ---------- */
 
 .top {
-	position: sticky; top: 0; z-index: 25;
+	position: relative; z-index: 25; flex: none;
 	display: flex; align-items: center; justify-content: space-between;
 	padding: calc(8px + env(safe-area-inset-top)) 16px 6px;
 	background: var(--stage-a);
@@ -91,19 +92,43 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 800; font-size: 1.25rem; color: var(--text); }
 .brand img { display: block; }
 .tools { display: flex; gap: 4px; }
-.jump {
-	position: sticky; top: calc(54px + env(safe-area-inset-top)); z-index: 24;
-	display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
-	padding: 4px 16px 8px; background: var(--stage-a);
-}
-.jump::-webkit-scrollbar { display: none; }
-.jump a {
-	flex: none; padding: 3px 14px; border-radius: 99px; text-decoration: none; font-weight: 600; font-size: .9rem;
-	color: var(--muted); background: color-mix(in srgb, var(--card) 55%, transparent);
-}
-.jump a.on { background: var(--text); color: var(--bg); }
-main > .block { max-width: 640px; margin-inline: auto; }
+main { flex: 1; min-height: 0; }
 .block { padding: 18px 16px 6px; }
+
+/* the sections, floating at the top of the stage; each opens its modal */
+.hub { display: flex; justify-content: center; gap: 6px; max-width: 100%; padding: 4px 12px 6px; z-index: 3; }
+.hub button {
+	display: inline-flex; align-items: center; gap: 5px; min-height: 36px; padding: 0 12px;
+	border: 2px solid var(--ink); border-radius: 99px; background: var(--card); color: var(--text);
+	font-size: .9rem; cursor: pointer; box-shadow: 0 4px 0 -1px var(--ink);
+	transition: transform .15s, box-shadow .15s;
+}
+.hub button b { font-weight: 700; }
+.hub button:hover { transform: translateY(-2px); }
+.hub button:active { transform: translateY(2px); box-shadow: 0 1px 0 -1px var(--ink); }
+@media (max-width: 360px) { .hub button { padding: 0 9px; } .hub button span { display: none; } }
+.linkish { padding: 0; border: 0; background: none; color: var(--money); font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+/* ---------- the modals: grown out of their buttons (modal.js) ---------- */
+
+.modal {
+	width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 0;
+	border: 0; border-radius: 0; background: var(--bg); color: var(--text);
+	overflow: auto; overscroll-behavior: contain;
+	padding-bottom: env(safe-area-inset-bottom);
+}
+.modal::backdrop, .sheet::backdrop { background: rgba(4, 20, 10, .5); animation: fade .3s ease-out; }
+@keyframes fade { from { opacity: 0; } }
+@media (min-width: 720px) {
+	.modal { width: min(640px, 92vw); height: auto; max-height: 88svh; margin: auto; border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .6); }
+}
+.modal-x { position: sticky; top: 8px; float: right; z-index: 2; margin: 8px 8px 0; background: var(--card); box-shadow: var(--shadow); }
+[dir="rtl"] .modal-x { float: left; }
+.modal .block { padding-top: 16px; padding-bottom: 20px; }
+.m-compose { background: var(--card); }
+.m-compose .composer { margin: 0; border: 0; border-radius: 0; box-shadow: none; padding: 18px 16px 20px; border-top: 6px solid var(--line); }
+.m-compose .composer.is-pay { border-top-color: var(--money); }
+.m-compose .composer.is-add { border-top-color: var(--gold); }
 
 .icon-btn {
 	display: inline-grid; place-items: center; min-width: 40px; height: 40px; padding: 0 8px;
@@ -130,15 +155,15 @@ main > .block { max-width: 640px; margin-inline: auto; }
 /* the man and his sack fill the screen; the ready moves and the dock float over him */
 .stage {
 	position: relative;
-	display: grid; grid-template-rows: auto 1fr auto; justify-items: center; align-items: center;
-	min-height: calc(100svh - 96px - env(safe-area-inset-top));
-	padding: 8px 0 calc(84px + env(safe-area-inset-bottom)); border-radius: 0 0 36px 36px;
+	display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; justify-items: center; align-items: center;
+	height: 100%; overflow: hidden;
+	padding: 0 0 calc(84px + env(safe-area-inset-bottom));
 	background:
 		repeating-radial-gradient(circle at 18% 24%, var(--guilloche) 0 1px, transparent 1px 11px),
 		repeating-radial-gradient(circle at 82% 70%, var(--guilloche) 0 1px, transparent 1px 13px),
 		linear-gradient(var(--stage-a), var(--stage-b));
 }
-.jar { position: relative; width: min(100%, 780px, calc((100svh - 330px) * .95)); min-width: min(100%, 300px); }
+.jar { position: relative; width: min(100%, 780px, calc((100svh - 360px) * .95)); min-width: min(100%, 240px); }
 .owed { display: grid; justify-items: center; margin-top: -10px; padding-inline: 16px; text-align: center; }
 
 .scenes {
@@ -166,7 +191,7 @@ main > .block { max-width: 640px; margin-inline: auto; }
 @media (min-width: 960px) {
 	/* beside the man, a column of ready moves */
 	.scenes { position: absolute; top: 50%; inset-inline-start: max(24px, calc(50% - 600px)); transform: translateY(-50%); flex-direction: column; align-items: flex-start; overflow: visible; padding: 0; }
-	.jar { grid-row: 1 / 4; width: min(100% - 640px, 820px, calc((100svh - 200px) * .95)); }
+	.jar { grid-row: 2 / 5; width: min(100% - 640px, 820px, calc((100svh - 210px) * .95)); }
 	/* and what is owed on the other side */
 	.owed { position: absolute; top: 50%; inset-inline-end: max(24px, calc(50% - 600px)); transform: translateY(-50%); margin: 0; max-width: 300px; }
 }
@@ -566,9 +591,6 @@ fieldset.place-field legend { padding: 0 6px; font-size: .85rem; font-weight: 60
 	box-shadow: 0 -10px 40px rgba(0, 0, 0, .3);
 }
 @media (min-width: 600px) { .sheet { margin: auto; border-radius: 24px; } }
-.sheet[open] { animation: up .28s cubic-bezier(.2, 1.2, .4, 1); }
-@keyframes up { from { transform: translateY(40px); opacity: 0; } }
-.sheet::backdrop { background: rgba(4, 20, 10, .5); }
 .sheet-body { padding: 14px 18px calc(18px + env(safe-area-inset-bottom)); }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .sheet-head h2 { margin: 0; overflow-wrap: anywhere; }

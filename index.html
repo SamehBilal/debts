@@ -31,16 +31,16 @@
 			<button type="button" class="icon-btn" id="lang" data-tl="English|العربية">ع/E</button>
 		</div>
 	</header>
-	<nav class="jump" aria-label="Sections">
-		<a href="#debts" data-t="الديون|Debts">Debts</a>
-		<a href="#plan" data-t="الخطة|Plan">Plan</a>
-		<a href="#places" data-t="الأماكن|Places">Places</a>
-		<a href="#settings" data-t="الإعدادات|Settings">Settings</a>
-	</nav>
-
+	<!-- one screen: the man and his sack; everything else opens as a modal out of its button -->
 	<main id="top">
 		<!-- the man, his sack, and what is owed on rolling reels -->
 		<section class="stage">
+			<nav class="hub" aria-label="Sections">
+				<button type="button" data-panel="debts"><span aria-hidden="true">☰</span><b data-t="الديون|Debts">Debts</b></button>
+				<button type="button" data-panel="plan"><span aria-hidden="true">📅</span><b data-t="الخطة|Plan">Plan</b></button>
+				<button type="button" data-panel="places"><span aria-hidden="true">🗺️</span><b data-t="الأماكن|Places">Places</b></button>
+				<button type="button" data-panel="settings"><span aria-hidden="true">⚙</span><b data-t="الإعدادات|Settings">Settings</b></button>
+			</nav>
 			<!-- ready-made moves, floating over the scene -->
 			<div class="scenes" id="scenes"></div>
 			<div class="jar" id="jar"></div>
@@ -52,9 +52,17 @@
 				<span class="owed-sub" id="owed-sub"></span>
 			</div>
 		</section>
+	</main>
 
-		<!-- add or pay: who, how much (reels, steppers, the ruler, ready amounts), then one tap -->
-		<section class="composer" id="composer" hidden aria-labelledby="composer-title">
+	<!-- the ready buttons, always in reach -->
+	<div class="dock">
+		<button type="button" class="btn dock-add" data-open="add"><span aria-hidden="true">＋</span> <span data-t="أضف دينًا|Add debt">Add debt</span></button>
+		<button type="button" class="btn dock-pay" data-open="pay"><span aria-hidden="true">✓</span> <span data-t="ادفع|Pay">Pay</span></button>
+	</div>
+
+	<!-- add or pay: who, how much (reels, steppers, the ruler, ready amounts), then one tap -->
+	<dialog class="modal m-compose" id="m-compose" aria-labelledby="composer-title">
+		<section class="composer" id="composer">
 			<h2 class="sr" id="composer-title"></h2>
 			<div class="seg mode" role="radiogroup">
 				<button type="button" role="radio" data-mode="pay" class="m-pay"><span aria-hidden="true">✓</span> <span data-t="ادفع|Pay">Pay</span></button>
@@ -74,18 +82,12 @@
 			<div class="steps" id="steps"></div>
 			<button type="button" class="btn big confirm" id="confirm"></button>
 		</section>
+	</dialog>
 
-		<section class="block" id="debts" aria-labelledby="debts-h"></section>
-		<section class="block" id="plan" aria-labelledby="plan-h"></section>
-		<section class="block" id="places" aria-labelledby="places-h"></section>
-		<section class="block" id="settings" aria-labelledby="settings-h"></section>
-	</main>
-
-	<!-- the ready buttons, always in reach -->
-	<div class="dock">
-		<button type="button" class="btn dock-add" data-open="add"><span aria-hidden="true">＋</span> <span data-t="أضف دينًا|Add debt">Add debt</span></button>
-		<button type="button" class="btn dock-pay" data-open="pay"><span aria-hidden="true">✓</span> <span data-t="ادفع|Pay">Pay</span></button>
-	</div>
+	<dialog class="modal" id="m-debts" aria-labelledby="debts-h"><button type="button" class="icon-btn modal-x" data-modal-close data-tl="إغلاق|Close">×</button><section class="block" id="debts"></section></dialog>
+	<dialog class="modal" id="m-plan" aria-labelledby="plan-h"><button type="button" class="icon-btn modal-x" data-modal-close data-tl="إغلاق|Close">×</button><section class="block" id="plan"></section></dialog>
+	<dialog class="modal" id="m-places" aria-labelledby="places-h"><button type="button" class="icon-btn modal-x" data-modal-close data-tl="إغلاق|Close">×</button><section class="block" id="places"></section></dialog>
+	<dialog class="modal" id="m-settings" aria-labelledby="settings-h"><button type="button" class="icon-btn modal-x" data-modal-close data-tl="إغلاق|Close">×</button><section class="block" id="settings"></section></dialog>
 
 	<dialog id="sheet" class="sheet"></dialog>
 
@@ -96,6 +98,7 @@
 	<script src="assets/js/places.js"></script>
 	<script src="assets/js/roller.js"></script>
 	<script src="assets/js/jar.js"></script>
+	<script src="assets/js/modal.js"></script>
 	<script src="assets/js/app.js"></script>
 	<script src="assets/js/pwa.js"></script>
 </body>
