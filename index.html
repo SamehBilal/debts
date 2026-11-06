@@ -41,7 +41,11 @@
 	<main id="top">
 		<!-- the man, his sack, and what is owed on rolling reels -->
 		<section class="stage">
+			<!-- ready-made moves, floating over the scene -->
+			<div class="scenes" id="scenes"></div>
 			<div class="jar" id="jar"></div>
+			<!-- one coin's details: a hover peek on desktop, a tap card on phones -->
+			<div class="peek" id="peek" role="dialog" aria-modal="false" hidden></div>
 			<div class="owed">
 				<span class="owed-cap" data-t="المتبقي عليك|Still owed">Still owed</span>
 				<span class="owed-num" id="owed"></span>

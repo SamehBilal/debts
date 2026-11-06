@@ -71,8 +71,120 @@
 			: p.ok && p.months ? L('حر في ', 'Debt-free by ') + '<b>' + esc(I18n.month(p.end)) + '</b>' + (st.budget ? ' · ' + money(st.budget) + L(' شهريًا', '/mo') : '')
 			: p.reason === 'toolow' ? '<a href="#plan">' + L('الميزانية لا تكفي', 'Budget too small') + '</a>'
 			: '<a href="#plan">' + L('حدد ميزانية شهرية لترى متى تتحرر', 'Set a monthly budget to see when you’re free') + '</a>';
-		Jar.update({ total: total, peak: S.state.meta.peak || total, level: level(p), money: money });
+		var pieces = S.open().filter(function (d) { return S.balance(d) > 0; }).map(function (d) {
+			var n = S.dueIn(d), bal = S.balance(d);
+			return { id: d.id, value: bal, icon: KINDS[d.kind].icon, tone: n != null && n < 0 ? 'late' : n != null && n <= 3 ? 'soon' : 'ok', label: d.name + ' · ' + money(bal) };
+		});
+		Jar.update({ total: total, peak: S.state.meta.peak || total, level: level(p), money: money, pieces: pieces });
+		drawScenes(p);
+		if (peekId) { if (S.get(peekId) && S.balance(S.get(peekId)) > 0) showPeek(peekId, peekPinned); else hidePeek(); }
 	}
+
+	/* ---------- ready-made scenarios, floating over the man ---------- */
+
+	function drawScenes(p) {
+		var open = S.open().filter(function (d) { return S.balance(d) > 0; }), out = [];
+		var short = function (s) { return s.length > 14 ? s.slice(0, 13) + '…' : s; };
+		if (!open.length) {
+			[['person', L('استلفت من صاحبي', 'I borrowed from a friend')], ['store', L('على الحساب في محل', 'On tab at a shop')], ['card', L('دفعت بالبطاقة', 'Put it on my card')]].forEach(function (s) {
+				out.push('<button type="button" class="scene go-add" data-scene-kind="' + s[0] + '"><span aria-hidden="true">' + KINDS[s[0]].icon + '</span> ' + s[1] + '</button>');
+			});
+		} else {
+			var late = S.overdue().filter(function (d) { return S.balance(d) > 0; })[0];
+			if (late) out.push('<button type="button" class="scene late" data-compose="pay" data-id="' + late.id + '"><span aria-hidden="true">⚠</span> ' + L('سدّد المتأخر: ', 'Pay what’s late: ') + esc(short(late.name)) + '</button>');
+			var next = p.debts.filter(function (x) { return x.now > 0; })[0], nd = next && S.get(next.id);
+			if (nd) out.push('<button type="button" class="scene go-pay" data-quick="' + nd.id + '" data-amt="' + next.now + '"><span aria-hidden="true">▶</span> ' + L('قسط الشهر: ', 'This month: ') + esc(short(nd.name)) + ' · ' + money(next.now) + '</button>');
+			var small = open.slice().sort(function (a, b) { return S.balance(a) - S.balance(b); })[0];
+			if (open.length > 1 && small && (!nd || small.id !== nd.id || next.now < S.balance(small)))
+				out.push('<button type="button" class="scene" data-quick="' + small.id + '" data-amt="' + S.balance(small) + '"><span aria-hidden="true">🎯</span> ' + L('اقفل الأصغر: ', 'Close the smallest: ') + esc(short(small.name)) + ' · ' + money(S.balance(small)) + '</button>');
+			if (!S.state.settings.budget) out.push('<a class="scene ghost" href="#plan"><span aria-hidden="true">📅</span> ' + L('حدد ميزانية شهرية', 'Set a monthly budget') + '</a>');
+		}
+		$('#scenes').innerHTML = out.join('');
+	}
+
+	/* ---------- one coin's details ---------- */
+
+	var peek = $('#peek'), peekId = '', peekPinned = false, peekT = 0;
+	var wide = matchMedia('(min-width: 720px) and (hover: hover)');
+	/* a small map without loading one: the OpenStreetMap tiles around the place, the pin in the middle */
+	function tileMap(pl) {
+		var z = 16, n = Math.pow(2, z), lat = pl.lat * Math.PI / 180;
+		var fx = (pl.lng + 180) / 360 * n, fy = (1 - Math.log(Math.tan(lat) + 1 / Math.cos(lat)) / Math.PI) / 2 * n;
+		var tx = Math.floor(fx), ty = Math.floor(fy), html = '';
+		for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++)
+			html += '<img alt="" loading="lazy" src="https://tile.openstreetmap.org/' + z + '/' + (tx + dx) + '/' + (ty + dy) + '.png" style="left:' + ((dx + 1) * 256) + 'px;top:' + ((dy + 1) * 256) + 'px">';
+		var ox = -((fx - tx + 1) * 256), oy = -((fy - ty + 1) * 256);
+		return '<a class="tile-map" target="_blank" rel="noopener" href="' + Places.mapsLink(pl) + '" aria-label="' + L('افتح في الخريطة', 'Open in maps') + '">' +
+			'<span class="tiles" style="transform:translate(' + ox.toFixed(0) + 'px,' + oy.toFixed(0) + 'px)">' + html + '</span><span class="tile-pin" aria-hidden="true">📍</span><small>© OpenStreetMap</small></a>';
+	}
+	function peekHtml(d) {
+		var p = plan(), bal = S.balance(d), mine = p.debts.filter(function (x) { return x.id === d.id; })[0];
+		var html = '<div class="peek-head"><span class="kind" aria-hidden="true">' + KINDS[d.kind].icon + '</span><b>' + esc(d.name) + '</b>' +
+			'<button type="button" class="icon-btn small" data-peek-shut aria-label="' + L('إغلاق', 'Close') + '">×</button></div>';
+		html += '<div class="peek-bal"><b>' + money(bal) + '</b><small>' + L('من ', 'of ') + money(S.borrowed(d)) + '</small></div>' + progress(d);
+		var facts = [kindName(d.kind)];
+		if (d.due) facts.push(L('الموعد ', 'Due ') + I18n.date(d.due) + ' ' + dueChip(d));
+		if (mine && mine.month != null && p.ok) facts.push(L('يُسدَّد ', 'Clear by ') + I18n.month(monthOf(mine.month)));
+		html += '<p class="peek-facts">' + facts.join(' · ') + '</p>';
+		if (d.place) {
+			html += '<div class="peek-place"><span>📍 ' + esc(d.place.label || L('مكان محفوظ', 'Saved place')) + '</span>';
+			if (S.located(d)) html += tileMap(d.place) + '<a class="btn btn-ghost btn-small" target="_blank" rel="noopener" href="' + Places.directionsLink(d.place) + '">' + L('الاتجاهات', 'Directions') + '</a>';
+			html += '</div>';
+		}
+		html += quickButtons(d, p) + '<div class="btn-row"><button type="button" class="btn btn-ghost btn-small" data-edit="' + d.id + '">✎ ' + L('تعديل', 'Edit') + '</button>' +
+			'<button type="button" class="btn btn-ghost btn-small" data-detail="' + d.id + '">' + L('التفاصيل والسجل', 'Details & history') + '</button></div>';
+		return html;
+	}
+	function placePeek(el) {
+		peek.classList.toggle('floating', wide.matches);
+		if (!wide.matches || !el) { peek.style.left = peek.style.top = ''; return; }
+		var st = peek.parentNode.getBoundingClientRect(), r = el.getBoundingClientRect(), w = peek.offsetWidth, h = peek.offsetHeight;
+		var right = r.right + 14 + w <= st.right - 8, left = r.left - 14 - w >= st.left + 8;
+		var x = right && (I18n.lang !== 'ar' || !left) ? r.right + 14 : left ? r.left - 14 - w : Math.max(st.left + 8, r.left + r.width / 2 - w / 2);
+		var y = right || left ? r.top + r.height / 2 - h / 2 : r.bottom + 10;
+		y = Math.max(st.top + 8, Math.min(y, st.bottom - h - 8));
+		peek.style.left = (x - st.left).toFixed(0) + 'px';
+		peek.style.top = (y - st.top).toFixed(0) + 'px';
+	}
+	function showPeek(id, pinned) {
+		var d = S.get(id);
+		if (!d) return;
+		clearTimeout(peekT);
+		var same = peekId === id && !peek.hidden;
+		peekId = id; peekPinned = !!pinned;
+		peek.innerHTML = peekHtml(d);
+		peek.setAttribute('aria-label', d.name);
+		peek.hidden = false;
+		peek.classList.toggle('pinned', peekPinned);
+		document.querySelectorAll('.piece.on').forEach(function (n) { n.classList.remove('on'); });
+		var el = Jar.pieceAt(id);
+		if (el) el.classList.add('on');
+		placePeek(el);
+		if (!same && !wide.matches) peek.classList.remove('rise'), void peek.offsetWidth, peek.classList.add('rise');
+	}
+	function hidePeek() {
+		clearTimeout(peekT);
+		peek.hidden = true; peekId = ''; peekPinned = false;
+		document.querySelectorAll('.piece.on').forEach(function (n) { n.classList.remove('on'); });
+	}
+	function laterHide() { clearTimeout(peekT); peekT = setTimeout(function () { if (!peekPinned) hidePeek(); }, 280); }
+	Jar.onPiece(function (id, el, how) {
+		if (how === 'hover') { if (!peekPinned || peekId === id) showPeek(id, peekPinned && peekId === id); }
+		else if (how === 'leave') { if (!peekPinned) laterHide(); }
+		else if (peekId === id && peekPinned) hidePeek();
+		else { showPeek(id, true); var f = peek.querySelector('.quick button, [data-edit]'); if (f && !wide.matches) f.focus({ preventScroll: true }); }
+	});
+	peek.addEventListener('pointerenter', function () { clearTimeout(peekT); });
+	peek.addEventListener('pointerleave', function (ev) { if (ev.pointerType === 'mouse' && !peekPinned) laterHide(); });
+	peek.addEventListener('click', function (ev) { if (ev.target.closest('[data-peek-shut], [data-detail], [data-edit], [data-compose]')) hidePeek(); else if (!peekPinned) { peekPinned = true; peek.classList.add('pinned'); } });
+	document.addEventListener('pointerdown', function (ev) { if (!peek.hidden && !peek.contains(ev.target) && !ev.target.closest('.piece')) hidePeek(); });
+	document.addEventListener('keydown', function (ev) {
+		if (ev.key !== 'Escape' || peek.hidden) return;
+		var back = Jar.pieceAt(peekId);
+		hidePeek();
+		if (back) back.focus();
+	});
+	window.addEventListener('resize', function () { if (!peek.hidden) placePeek(Jar.pieceAt(peekId)); });
 
 	/* ---------- bits ---------- */
 
@@ -605,6 +717,7 @@
 		if (!b || composer.contains(b)) return;
 		var g = function (a) { return b.getAttribute(a); };
 		if (b.hasAttribute('data-open')) openComposer(g('data-open'));
+		else if (b.hasAttribute('data-scene-kind')) { C.kind = g('data-scene-kind'); openComposer('add'); }
 		else if (b.hasAttribute('data-compose')) { closeSheet(); openComposer(g('data-compose'), g('data-id') || ''); }
 		else if (b.hasAttribute('data-quick')) quickPay(g('data-quick'), +g('data-amt'));
 		else if (b.hasAttribute('data-detail')) openDetail(g('data-detail'));

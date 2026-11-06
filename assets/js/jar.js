@@ -6,12 +6,13 @@
      cartoon) · 3 straining (sweat) · 4 crushed (squashed, shaking)
    Jar.react('borrow' | 'pay' | 'paidoff' | 'free') plays a moment (the sack drops on him, lifts,
    confetti) with a line in a speech bubble; tapping him makes him say something.
-   Jar.mount(el), Jar.update({ total, peak, level, money }). */
+   Jar.mount(el), Jar.update({ total, peak, level, money, pieces: [{ id, value, icon, label, tone }] }):
+   each piece is a coin in the sack, sized by its value; Jar.onPiece(fn(id, el, 'hover' | 'leave' | 'tap')). */
 (function () {
 	'use strict';
 
 	var BAG_H = 205;
-	var SCALE = [0.55, 0.62, 0.78, 0.9, 1];
+	var SCALE = [0.55, 0.8, 0.9, 1, 1.08];
 	var SQUASH = [1, 1, 0.98, 0.93, 0.86];
 	var MOOD = ['grin', 'smile', 'smile', 'strain', 'ouch'];
 
@@ -66,8 +67,10 @@
 				'<path d="' + wave + '" fill="var(--bag-deep)" transform="translate(20 -5)"/>' +
 				'<path d="' + wave + '" fill="var(--bag)"/>' +
 			'</g></g></g>' +
-			'<path d="M-62 -150 Q-84 -110 -76 -64" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity=".35"/>' +
-			'<path d="' + body + '" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linejoin="round"/>' +
+			'<path class="bag-line" d="M-62 -150 Q-84 -110 -76 -64" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity=".35"/>' +
+			'<path class="bag-line" d="' + body + '" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linejoin="round"/>' +
+			/* every open debt, a coin in the sack sized by what is left on it */
+			'<g class="pieces"></g>' +
 			/* the knot */
 			'<path d="M-22 -' + BAG_H + ' C-40 -' + (BAG_H + 26) + ' -12 -' + (BAG_H + 34) + ' 0 -' + (BAG_H + 12) + ' C12 -' + (BAG_H + 34) + ' 40 -' + (BAG_H + 26) + ' 22 -' + BAG_H + ' Z" fill="var(--bag)" stroke="var(--ink)" stroke-width="3.5" stroke-linejoin="round"/>' +
 			'<rect x="-24" y="-' + (BAG_H + 6) + '" width="48" height="11" rx="5" fill="var(--bag-deep)" stroke="var(--ink)" stroke-width="3"/>' +
@@ -140,9 +143,83 @@
 			'</svg>';
 		svg = root.querySelector('svg');
 		bubble = root.querySelector('.jar-bubble');
-		svg.addEventListener('click', function () { say(pick(LINES['tap' + state.level])); poke(); });
+		svg.addEventListener('click', function (ev) {
+			var pc = ev.target.closest('.piece');
+			if (pc) { if (onPiece) onPiece(pc.getAttribute('data-id'), pc, 'tap'); return; }
+			say(pick(LINES['tap' + state.level])); poke();
+		});
+		svg.addEventListener('keydown', function (ev) {
+			var pc = ev.target.closest('.piece');
+			if (pc && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); if (onPiece) onPiece(pc.getAttribute('data-id'), pc, 'tap'); }
+		});
+		/* a mouse resting on a coin peeks at it; a finger taps instead */
+		svg.addEventListener('pointerover', function (ev) {
+			var pc = ev.pointerType === 'mouse' && ev.target.closest('.piece');
+			if (pc && onPiece) onPiece(pc.getAttribute('data-id'), pc, 'hover');
+		});
+		svg.addEventListener('pointerout', function (ev) {
+			var pc = ev.pointerType === 'mouse' && ev.target.closest('.piece');
+			if (pc && !pc.contains(ev.relatedTarget) && onPiece) onPiece(pc.getAttribute('data-id'), pc, 'leave');
+		});
 		svg.style.cursor = 'pointer';
 	}
+
+	/* ---------- the coins in the sack ---------- */
+
+	var onPiece = null, piecesKey = '';
+	/* room in the sack for a coin of radius r at (x, y), the sack's bottom centre at 0, 0 */
+	function fits(x, y, r) {
+		var rx = 100 - r - 5, ry = 98 - r - 5;
+		if (rx <= 0 || ry <= 0 || y - r < -168) return false; /* clear of the neck and the tag */
+		if (x - r * 0.4 < -44 && y + r * 0.4 > -74) return false; /* and of his head, over the sack's lower left */
+		var dx = x / rx, dy = (y + 100) / ry;
+		return dx * dx + dy * dy <= 1;
+	}
+	/* biggest first, each dropped as low as it will go, nearest the middle */
+	function pack(list) {
+		/* area grows a little slower than the amount, so a small debt is still a coin you can tap */
+		var w = function (p) { return Math.pow(Math.max(1, p.value), 0.7); };
+		var total = list.reduce(function (a, p) { return a + w(p); }, 0);
+		var k = Math.sqrt(4000 / Math.max(1, total)), placed = [];
+		for (var tries = 0; tries < 10; tries++) {
+			var ok = true;
+			placed = [];
+			for (var i = 0; i < list.length && ok; i++) {
+				var r = Math.max(13, Math.min(58, k * Math.sqrt(w(list[i])))), spot = null;
+				for (var y = -r - 6; y > -196 && !spot; y -= 3) {
+					for (var s = 0; s <= 100 && !spot; s += 3) {
+						for (var sg = 1; sg >= -1 && !spot; sg -= 2) {
+							var x = s * sg;
+							if (!fits(x, y, r)) continue;
+							var clear = placed.every(function (q) { var dx = q.x - x, dy = q.y - y; return dx * dx + dy * dy >= (q.r + r + 3) * (q.r + r + 3); });
+							if (clear) spot = { x: x, y: y, r: r, p: list[i] };
+						}
+					}
+				}
+				if (spot) placed.push(spot); else ok = false;
+			}
+			if (ok) return placed;
+			k *= 0.85;
+		}
+		return placed;
+	}
+	function drawPieces(list, money) {
+		var g = svg.querySelector('.pieces');
+		var key = JSON.stringify(list) + money(1);
+		svg.classList.toggle('has-pieces', list.length > 0);
+		if (key === piecesKey) return;
+		piecesKey = key;
+		list = list.slice().sort(function (a, b) { return b.value - a.value; });
+		g.innerHTML = pack(list).map(function (c, i) {
+			var p = c.p, r = c.r.toFixed(1), inner = '';
+			if (c.r >= 17) inner += '<text class="pc-icon" y="' + (c.r >= 28 ? -c.r * 0.12 : c.r * 0.3).toFixed(1) + '" font-size="' + (c.r * (c.r >= 28 ? 0.62 : 0.85)).toFixed(1) + '" text-anchor="middle">' + p.icon + '</text>';
+			if (c.r >= 28) inner += '<text class="pc-amt" y="' + (c.r * 0.55).toFixed(1) + '" font-size="' + Math.min(17, c.r * 0.34).toFixed(1) + '" text-anchor="middle">' + I18n.esc(money(p.value, true)) + '</text>';
+			return '<g class="piece tone-' + p.tone + '" data-id="' + p.id + '" tabindex="0" role="button" aria-label="' + I18n.esc(p.label) + '" transform="translate(' + c.x.toFixed(1) + ' ' + c.y.toFixed(1) + ')">' +
+				'<g class="pc" style="animation-delay:' + (i * 0.05).toFixed(2) + 's">' +
+				'<circle class="pc-coin" r="' + r + '"/><circle class="pc-ring" r="' + (c.r * 0.8).toFixed(1) + '"/>' + inner + '</g></g>';
+		}).join('');
+	}
+	function pieceAt(id) { return svg && svg.querySelector('.piece[data-id="' + id + '"]'); }
 
 	function setFace(mood) {
 		var faces = {
@@ -174,6 +251,7 @@
 		svg.querySelector('.bag-sum').textContent = s.money(s.total, true);
 		svg.querySelector('.tag-a').textContent = L('الذروة', 'PEAK');
 		svg.querySelector('.tag-b').textContent = s.money(s.peak, true);
+		drawPieces(lv ? s.pieces || [] : [], s.money);
 		svg.querySelector('#jar-title').textContent = lv === 0
 			? L('لا ديون: الرجل واقف رافعًا ذراعيه والكيس فارغ.', 'No debt: the man stands with his arms up, the sack empty.')
 			: L('الرجل يحمل كيس الدين ممتلئًا بنسبة ', 'The man carries the debt sack, filled to ') + I18n.pct(f) + L(' من الذروة.', ' of the peak.');
@@ -233,5 +311,5 @@
 		else if (what === 'free') { if (!reduce) confetti(); say(pick(LINES.free), 3500); }
 	}
 
-	window.Jar = { mount: mount, update: update, react: react, say: say };
+	window.Jar = { mount: mount, update: update, react: react, say: say, pieceAt: pieceAt, onPiece: function (fn) { onPiece = fn; } };
 })();
