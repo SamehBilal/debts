@@ -106,7 +106,7 @@ main { flex: 1; min-height: 0; }
 .hub button b { font-weight: 700; }
 .hub button:hover { transform: translateY(-2px); }
 .hub button:active { transform: translateY(2px); box-shadow: 0 1px 0 -1px var(--ink); }
-@media (max-width: 360px) { .hub button { padding: 0 9px; } .hub button span { display: none; } }
+@media (max-width: 440px) { .hub { gap: 5px; } .hub button { padding: 0 11px; } .hub button span { display: none; } }
 .linkish { padding: 0; border: 0; background: none; color: var(--money); font-weight: 700; text-decoration: underline; cursor: pointer; }
 
 /* ---------- the modals: grown out of their buttons (modal.js) ---------- */
