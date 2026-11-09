@@ -7,7 +7,7 @@
      2 tired · 3 straining · 4 crushed (gritted teeth, sweat, shaking)
    Jar.react('borrow' | 'pay' | 'paidoff' | 'free') plays a moment (the sack drops on him, lifts,
    confetti) with a line in a speech bubble; tapping him makes him say something.
-   Jar.mount(el), Jar.update({ total, peak, level, money, pieces: [{ id, value, icon, label, tone }] }):
+   Jar.mount(el), Jar.update({ total, peak, level, money, who: 'man' | 'boy' | 'girl', pieces: [{ id, value, icon, label, tone }] }):
    each piece is a coin in the sack, sized by its value; Jar.onPiece(fn(id, el, 'hover' | 'leave' | 'tap')). */
 (function () {
 	'use strict';
@@ -57,13 +57,13 @@
 		'</g></g>';
 	}
 
-	function bag() {
+	function bag(bx, by) {
 		var body = 'M-22 -' + BAG_H + ' C-46 -192 -104 -160 -106 -94 C-110 -26 -62 0 0 0 C62 0 110 -26 106 -94 C104 -160 46 -192 22 -' + BAG_H + ' Z';
 		/* a wide wave, slid sideways forever for the liquid's surface */
 		var wave = 'M-260 0';
 		for (var x = -260; x < 260; x += 40) wave += ' q10 -7 20 0 t20 0';
 		wave += ' V' + (BAG_H + 20) + ' H-260 Z';
-		return '<g class="bag-pos" transform="translate(184 240)"><g class="bag-drop"><g class="bag-scale">' +
+		return '<g class="bag-pos" transform="translate(' + (bx || 184) + ' ' + (by || 240) + ')"><g class="bag-drop"><g class="bag-scale">' +
 			'<clipPath id="bagClip"><path d="' + body + '"/></clipPath>' +
 			'<ellipse cx="0" cy="2" rx="92" ry="9" fill="#000" opacity=".12"/>' +
 			'<path d="' + body + '" fill="var(--bag-empty)"/>' +
@@ -151,7 +151,145 @@
 		'</g>';
 	}
 
-	var root, svg, bubble, state = { level: 2, total: 0, peak: 0 }, reacting = 0, bubbleTimer = 0;
+	/* ---------- the boy and the girl: two kids of this app's own, in a loose comic style ----------
+	   Big heads and eyes, chunky sneakers, a slightly heavier line. The boy: curly dark hair, freckles,
+	   a mustard hoodie, cuffed jeans, green high-tops. The girl: black hair in a high ponytail with
+	   a yellow clip, a rust sweater over a striped collar, dark leggings, white sneakers with pink laces.
+	   Same rig as the man: the same face classes, levels and reactions. */
+	var KIDS = {
+		boy: { top: '#d9a23a', topDeep: '#b8841f', pants: '#3f6ea8', pantsDeep: '#30588a', shoe: '#3c9467', shoeDeep: '#2c7350', sole: '#f2efe6', lace: '#f2efe6', hair: '#2a1f1a' },
+		girl: { top: '#c4553d', topDeep: '#a1422d', pants: '#2e2d38', pantsDeep: '#23222b', shoe: '#f1eee8', shoeDeep: '#d8d3ca', sole: '#c9c3b8', lace: '#e97aa0', hair: '#1d181b' }
+	};
+	var KW = 2.6; /* the kids' line, a touch heavier */
+	function klimb(x1, y1, x2, y2, w, color) {
+		return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="var(--ink)" stroke-width="' + (w + KW * 2) + '" stroke-linecap="round"/>' +
+			'<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="' + color + '" stroke-width="' + w + '" stroke-linecap="round"/>';
+	}
+	var KS = ' fill="none" stroke="var(--ink)" stroke-width="' + KW + '" stroke-linecap="round" stroke-linejoin="round"';
+	var KO = ' stroke="var(--ink)" stroke-width="' + KW + '" stroke-linejoin="round"';
+
+	/* one eye at (x, y), w × h: every look the moods need */
+	function keye(x, y, rx, ry, p) {
+		var lid = 'M' + (x - rx - 1) + ' ' + (y + 0.5) + ' Q' + x + ' ' + (y - ry * 2.3) + ' ' + (x + rx + 1) + ' ' + (y + 0.5) + ' Z';
+		return {
+			open: '<ellipse cx="' + x + '" cy="' + y + '" rx="' + rx + '" ry="' + ry + '" fill="#fff"' + KO + '/><circle cx="' + (x - p) + '" cy="' + (y + 1) + '" r="' + (rx * 0.5) + '" fill="var(--ink)"/><circle cx="' + (x - p - 1) + '" cy="' + (y - 0.5) + '" r="1" fill="#fff"/>',
+			happy: '<path d="M' + (x - rx) + ' ' + (y + 1) + ' Q' + x + ' ' + (y - ry) + ' ' + (x + rx) + ' ' + (y + 1) + '"' + KS + '/>',
+			squint: '<ellipse cx="' + x + '" cy="' + y + '" rx="' + rx + '" ry="' + ry + '" fill="#fff"' + KO + '/><circle cx="' + (x - p) + '" cy="' + (y + 2) + '" r="' + (rx * 0.45) + '" fill="var(--ink)"/><path d="' + lid + '" fill="var(--skin)"' + KO + '/>',
+			wide: '<ellipse cx="' + x + '" cy="' + y + '" rx="' + (rx + 1) + '" ry="' + (ry + 1) + '" fill="#fff"' + KO + '/><circle cx="' + (x - p) + '" cy="' + y + '" r="' + (rx * 0.28) + '" fill="var(--ink)"/>',
+			bag: '<path d="M' + (x - rx + 1) + ' ' + (y + ry + 2.5) + ' Q' + x + ' ' + (y + ry + 4.5) + ' ' + (x + rx - 1) + ' ' + (y + ry + 2.5) + '" fill="none" stroke="var(--ink)" stroke-width="1.3" stroke-linecap="round" opacity=".4"/>'
+		};
+	}
+
+	/* a kid's head, three-quarters to the left, around (0, 0) */
+	function kidHead(x, y, who, c) {
+		var a = keye(-17, -2, 4.6, 6.6, 1.2), b = keye(-3.5, -2, 6, 8, 1.6);
+		var hair = who === 'boy'
+			? '<path d="M23 1 Q30 -22 14 -31 Q4 -38 -8 -33 Q-22 -30 -26 -16 Q-28 -8 -25 -4 Q-21 -15 -13 -16 Q-12 -23 -4 -21 Q0 -27 8 -22 Q16 -24 17 -15 Q22 -12 21 0 Z" fill="' + c.hair + '"' + KO + '/>' +
+				'<path d="M-6 -27 q4 -4 8 0 M6 -30 q4 -3 8 1 M-17 -24 q3 -4 7 -1" fill="none" stroke="#5a4637" stroke-width="1.8" stroke-linecap="round"/>'
+			: '<path d="M10 -27 Q22 -48 42 -40 Q54 -32 47 -14 Q44 -6 38 -4 Q44 -22 32 -28 Q22 -32 15 -22 Z" fill="' + c.hair + '"' + KO + '/>' +
+				'<path d="M23 2 Q30 -26 6 -31 Q-20 -33 -26 -10 Q-27 -3 -25 2 Q-21 -12 -15 -18 Q-12 -11 -6 -17 Q-2 -10 5 -16 Q12 -12 15 -18 Q20 -10 21 2 Z" fill="' + c.hair + '"' + KO + '/>' +
+				'<circle cx="13" cy="-25" r="3.6" fill="#e97aa0"' + KO + '/>' +
+				'<rect x="-16" y="-25" width="10" height="4.5" rx="2" fill="#f3c84b"' + KO + ' transform="rotate(-18 -11 -23)"/>';
+		return '<g transform="translate(' + x + ' ' + y + ') scale(1.3)"><g class="head">' +
+			'<path d="M22 -4 Q23 -27 0 -27 Q-23 -27 -25 -6 Q-26 9 -18 18 Q-8 26 6 24 Q20 20 22 -4 Z" fill="var(--skin)"' + KO + '/>' +
+			'<ellipse cx="18" cy="3" rx="5" ry="6.5" fill="var(--skin)"' + KO + '/>' +
+			hair +
+			'<ellipse cx="-9" cy="9" rx="5" ry="3" fill="#e98a74" opacity=".35"/>' +
+			(who === 'boy' ? '<g fill="#a8643f" opacity=".7"><circle cx="-12" cy="7" r=".9"/><circle cx="-8" cy="9" r=".9"/><circle cx="-5" cy="6.5" r=".9"/></g>' : '') +
+			'<g class="f eye-open">' + a.open + b.open + '</g>' +
+			'<g class="f eye-happy">' + a.happy + b.happy + '</g>' +
+			'<g class="f eye-squint">' + a.squint + b.squint + '</g>' +
+			'<g class="f eye-wide">' + a.wide + b.wide + '</g>' +
+			'<g class="bags">' + a.bag + b.bag + '</g>' +
+			/* brows, thick and short */
+			'<g class="f brow-up"><path d="M-21 -12 Q-17 -15 -13 -12.5"' + KS + '/><path d="M-8 -13.5 Q-3 -17 2 -13.5"' + KS + '/></g>' +
+			'<g class="f brow-down"><path d="M-21 -13.5 L-13 -10.5"' + KS + '/><path d="M-8 -10.5 L2 -14.5"' + KS + '/></g>' +
+			'<g class="f brow-worry"><path d="M-21 -10.5 L-13 -14"' + KS + '/><path d="M-8 -14.5 L2 -11"' + KS + '/></g>' +
+			/* a small nose */
+			'<path d="M-24.5 2 q-3.5 3 0 5"' + KS + '/>' +
+			/* mouths */
+			'<path class="f m-grin" d="M-19 11 Q-12 20 -4 11 Z" fill="#7a2f2a"' + KO + '/>' +
+			'<path class="f m-smile" d="M-18 12 Q-12 17 -6 12"' + KS + '/>' +
+			'<g class="f m-strain"><rect x="-19" y="10" width="12" height="6" rx="2" fill="#fff"' + KO + '/><path d="M-15 10v6M-11 10v6M-19 13h12" stroke="var(--ink)" stroke-width="1"/></g>' +
+			'<path class="f m-worry" d="M-18 14 q3 -3 6 0 t6 0"' + KS + '/>' +
+			'<ellipse class="f m-ouch" cx="-12" cy="13.5" rx="3" ry="3.8" fill="#7a2f2a"' + KO + '/>' +
+			'<g class="sweat"><path class="drop d1" d="M6 -20 q4 7 0 9 q-4 -2 0 -9z" fill="#9cc7e8" stroke="var(--ink)" stroke-width="1.4"/>' +
+			'<path class="drop d2" d="M-24 -18 q3.5 6 0 8 q-3.5 -2 0 -8z" fill="#9cc7e8" stroke="var(--ink)" stroke-width="1.4"/></g>' +
+			'<g class="stress" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"><path d="M-14 -38 l-3 -8"/><path d="M-2 -41 v-8"/><path d="M10 -38 l3 -8"/></g>' +
+		'</g></g>';
+	}
+
+	/* a chunky sneaker, toe to the left (dir -1) or right (1), heel at (x, y) on the ground */
+	function sneaker(x, y, dir, c, len) {
+		var L2 = len || 30, t = x + dir * L2;
+		var body = 'M' + x + ' ' + (y - 2) + ' L' + x + ' ' + (y - 13) + ' Q' + (x + dir * 8) + ' ' + (y - 17) + ' ' + (x + dir * 15) + ' ' + (y - 12) + ' Q' + (t - dir * 2) + ' ' + (y - 11) + ' ' + t + ' ' + (y - 4) + ' L' + t + ' ' + (y - 2) + ' Z';
+		return '<path d="' + body + '" fill="' + c.shoe + '"' + KO + '/>' +
+			'<path d="M' + (x - dir) + ' ' + y + ' L' + (t + dir) + ' ' + y + ' L' + (t + dir) + ' ' + (y - 4) + ' L' + (x - dir) + ' ' + (y - 4) + ' Z" fill="' + c.sole + '"' + KO + '/>' +
+			'<path d="M' + (x + dir * 7) + ' ' + (y - 13) + ' l' + (dir * 5) + ' 2.5 M' + (x + dir * 11) + ' ' + (y - 11) + ' l' + (dir * 5) + ' 2.5" stroke="' + c.lace + '" stroke-width="2.2" stroke-linecap="round"/>';
+	}
+
+	/* a kid on all fours under the sack, facing left; the sack sits on the back at (188, 266) */
+	function kidCrawl(who) {
+		var c = KIDS[who];
+		var hood = who === 'boy'
+			? '<path d="M150 268 Q160 256 178 262 Q172 276 156 280 Z" fill="' + c.topDeep + '"' + KO + '/>'
+			: '<path d="M146 274 L156 266 L162 280 Z" fill="#f1eee8"' + KO + '/><path d="M149 272 l4 -3 M152 276 l4 -3" stroke="#6b7fa3" stroke-width="1.6"/>';
+		var legs = who === 'girl' ? c.pants : c.pants;
+		return '<g class="crawl">' +
+			/* far leg and arm */
+			klimb(236, 300, 233, 342, 20, c.pantsDeep) + klimb(233, 343, 272, 346, 16, c.pantsDeep) +
+			'<g transform="translate(0 0)">' + sneaker(272, 352, 1, { shoe: c.shoeDeep, sole: c.sole, lace: c.lace }, 24) + '</g>' +
+			klimb(158, 290, 154, 342, 15, c.topDeep) +
+			'<ellipse cx="151" cy="347" rx="9" ry="4.5" fill="var(--skin-deep)"' + KO + '/>' +
+			/* the body: a roomy top, with the hem over the hips */
+			'<path d="M140 288 Q144 266 172 266 L232 268 Q258 270 258 292 Q258 316 232 316 L162 316 Q140 314 140 296 Z" fill="' + c.top + '"' + KO + '/>' +
+			'<path d="M234 270 L234 314" stroke="' + c.topDeep + '" stroke-width="5" opacity=".7"/>' +
+			(who === 'boy' ? '<path d="M186 300 q14 6 28 0" fill="none" stroke="' + c.topDeep + '" stroke-width="2.2" stroke-linecap="round"/>'
+				: '<path d="M170 272 L170 314 M200 270 L200 315" stroke="' + c.topDeep + '" stroke-width="1.6" opacity=".6" stroke-dasharray="2 4"/>') +
+			hood +
+			/* near leg */
+			klimb(246, 304, 244, 344, 21, legs) + klimb(244, 346, 284, 348, 17, legs) +
+			(who === 'boy' ? '<path d="M266 338 L268 356" stroke="#6f95c8" stroke-width="5"/>' : '') +
+			sneaker(282, 354, 1, c, 28) +
+			bag(188, 266) +
+			/* near arm, sleeve to the wrist */
+			klimb(168, 294, 166, 340, 16, c.top) +
+			'<path d="M157 336 L175 337" stroke="' + c.topDeep + '" stroke-width="3.5" stroke-linecap="round"/>' +
+			'<ellipse cx="164" cy="348" rx="10" ry="5" fill="var(--skin)"' + KO + '/>' +
+			kidHead(116, 298, who, c) +
+		'</g>';
+	}
+
+	/* no debt: the kid stands, both arms up, the empty sack beside */
+	function kidFree(who) {
+		var c = KIDS[who];
+		return '<g class="free">' +
+			'<g transform="translate(292 350)"><path d="M-46 0 Q-50 -16 -20 -18 Q0 -26 24 -18 Q50 -16 46 0 Z" fill="var(--bag-empty)"' + KO + '/>' +
+			'<path d="M20 -18 q14 -14 22 -2 q-10 4 -22 2z" fill="var(--bag)" stroke="var(--ink)" stroke-width="' + KW + '"/>' +
+			'<text class="free-0" x="0" y="-5" text-anchor="middle">0</text></g>' +
+			'<g class="jump">' +
+			/* legs and sneakers */
+			klimb(165, 268, 163, 334, 16, c.pants) + klimb(186, 268, 189, 334, 16, c.pants) +
+			(who === 'boy' ? '<path d="M154 326 h19 M180 326 h19" stroke="#6f95c8" stroke-width="5"/>' : '') +
+			sneaker(176, 352, -1, c, 30) + sneaker(178, 352, 1, c, 30) +
+			/* arms up */
+			klimb(152, 222, 128, 198, 13, c.top) + klimb(128, 198, 110, 174, 12, c.top) +
+			'<circle cx="106" cy="167" r="7.5" fill="var(--skin)"' + KO + '/>' +
+			klimb(200, 222, 224, 198, 13, c.top) + klimb(224, 198, 242, 174, 12, c.top) +
+			'<circle cx="246" cy="167" r="7.5" fill="var(--skin)"' + KO + '/>' +
+			/* the body */
+			'<path d="M150 216 Q175 206 200 216 L206 262 Q207 274 195 274 L155 274 Q143 274 144 262 Z" fill="' + c.top + '"' + KO + '/>' +
+			(who === 'boy'
+				? '<path d="M160 214 Q175 230 190 214" fill="' + c.topDeep + '"' + KO + '/><path d="M170 228 v14 M180 228 v14" stroke="#f2efe6" stroke-width="2" stroke-linecap="round"/><path d="M160 252 h30 v14 h-30 z" fill="' + c.topDeep + '" opacity=".6"/>'
+				: '<path d="M164 212 L175 224 L186 212 Z" fill="#f1eee8"' + KO + '/><path d="M168 214 h14 M171 218 h8" stroke="#6b7fa3" stroke-width="1.8"/><path d="M150 262 h50" stroke="' + c.topDeep + '" stroke-width="3" opacity=".7"/>') +
+			kidHead(175, 180, who, c) +
+			'</g>' +
+		'</g>';
+	}
+
+	function figure(who) { return KIDS[who] ? kidCrawl(who) + kidFree(who) : crawl() + free(); }
+
+	var who = 'man', root, svg, bubble, state = { level: 2, total: 0, peak: 0 }, reacting = 0, bubbleTimer = 0;
 
 	function mount(el) {
 		root = el;
@@ -160,7 +298,7 @@
 			'<svg class="jar-svg" viewBox="0 0 360 380" role="img" aria-labelledby="jar-title">' +
 				'<title id="jar-title"></title>' +
 				'<ellipse class="ground" cx="190" cy="354" rx="150" ry="13"/>' +
-				crawl() + free() +
+				'<g class="figure">' + figure(who) + '</g>' +
 				'<g class="confetti"></g>' +
 			'</svg>';
 		svg = root.querySelector('svg');
@@ -262,6 +400,9 @@
 	function update(s) {
 		if (!svg) return;
 		state = s;
+		/* who carries the sack: the man, the boy or the girl */
+		var w = KIDS[s.who] ? s.who : 'man';
+		if (w !== who) { who = w; svg.querySelector('.figure').innerHTML = figure(who); svg.setAttribute('data-who', who); piecesKey = ''; }
 		var lv = s.level;
 		var f = s.peak > 0 ? Math.max(0.06, Math.min(1, s.total / s.peak)) : 0;
 		svg.setAttribute('data-level', lv);
@@ -275,9 +416,15 @@
 		svg.querySelector('.tag-b').textContent = s.money(s.peak, true);
 		drawPieces(lv ? s.pieces || [] : [], s.money);
 		svg.querySelector('#jar-title').textContent = lv === 0
-			? L('لا ديون: الرجل واقف رافعًا ذراعيه والكيس فارغ.', 'No debt: the man stands with his arms up, the sack empty.')
-			: L('الرجل يحمل كيس الدين ممتلئًا بنسبة ', 'The man carries the debt sack, filled to ') + I18n.pct(f) + L(' من الذروة.', ' of the peak.');
+			? L('لا ديون: ', 'No debt: ') + WHO[who][0]() + L(who === 'girl' ? ' واقفة رافعةً ذراعيها والكيس فارغ.' : ' واقف رافعًا ذراعيه والكيس فارغ.', ' stands with arms up, the sack empty.')
+			: WHO[who][1]() + L(who === 'girl' ? ' تحمل كيس الدين ممتلئًا بنسبة ' : ' يحمل كيس الدين ممتلئًا بنسبة ', ' carries the debt sack, filled to ') + I18n.pct(f) + L(' من الذروة.', ' of the peak.');
 	}
+
+	var WHO = {
+		man: [function () { return L('الرجل', 'the man'); }, function () { return L('الرجل', 'The man'); }],
+		boy: [function () { return L('الولد', 'the boy'); }, function () { return L('الولد', 'The boy'); }],
+		girl: [function () { return L('البنت', 'the girl'); }, function () { return L('البنت', 'The girl'); }]
+	};
 
 	/* ---------- moments ---------- */
 

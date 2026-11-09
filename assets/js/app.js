@@ -75,7 +75,7 @@
 			var n = S.dueIn(d), bal = S.balance(d);
 			return { id: d.id, value: bal, icon: KINDS[d.kind].icon, tone: n != null && n < 0 ? 'late' : n != null && n <= 3 ? 'soon' : 'ok', label: d.name + ' · ' + money(bal) };
 		});
-		Jar.update({ total: total, peak: S.state.meta.peak || total, level: level(p), money: money, pieces: pieces });
+		Jar.update({ total: total, peak: S.state.meta.peak || total, level: level(p), money: money, who: st.who, pieces: pieces });
 		drawScenes(p);
 		if (peekId) { if (S.get(peekId) && S.balance(S.get(peekId)) > 0) showPeek(peekId, peekPinned); else hidePeek(); }
 	}
@@ -576,6 +576,9 @@
 				'<div class="field"><span>' + L('المظهر', 'Theme') + '</span><div class="seg themes" role="radiogroup">' + Object.keys(THEMES).map(function (k) {
 					return '<button type="button" role="radio" aria-checked="' + (st.theme === k) + '" data-theme-pick="' + k + '">' + THEMES[k][0] + ' ' + L(THEMES[k][1], THEMES[k][2]) + '</button>';
 				}).join('') + '</div></div>' +
+				'<div class="field"><span>' + L('مين شايل الكيس', 'Who carries the sack') + '</span><div class="seg whos" role="radiogroup">' + [['man', '🧔', 'رجل', 'Man'], ['boy', '👦', 'ولد', 'Boy'], ['girl', '👧', 'بنت', 'Girl']].map(function (w) {
+					return '<button type="button" role="radio" aria-checked="' + ((st.who || 'man') === w[0]) + '" data-who-pick="' + w[0] + '">' + w[1] + ' ' + L(w[2], w[3]) + '</button>';
+				}).join('') + '</div></div>' +
 				'<label class="field"><span>' + L('العملة', 'Currency') + '</span><select data-setting="currency">' + I18n.CURRENCIES.concat(I18n.CURRENCIES.indexOf(I18n.currency) < 0 ? [I18n.currency] : []).map(function (c) { return opt(c, c, I18n.currency); }).join('') + '</select></label>' +
 				'<label class="toggle"><input type="checkbox" data-setting="nearby"' + (st.nearby ? ' checked' : '') + '><span>' + L('ذكّرني حين أكون قرب مكان عليّ فيه دين', 'Remind me when I’m near a place I owe') + '<small>' + L('عند فتح التطبيق، يُقارن موقعك بأماكن ديونك على جهازك فقط.', 'When the app opens, your location is checked against your debts’ places, on this device only.') + '</small></span></label>' +
 			'</div>' +
@@ -740,6 +743,7 @@
 			S.state.settings.order = ids; S.save();
 		}
 		else if (b.hasAttribute('data-theme-pick')) { S.state.settings.theme = g('data-theme-pick'); S.save(); }
+		else if (b.hasAttribute('data-who-pick')) { S.state.settings.who = g('data-who-pick'); S.save(); }
 		else if (b.hasAttribute('data-export')) exportData(g('data-export'));
 		else if (b.hasAttribute('data-wipe')) {
 			if (window.confirm(L('سيُمسح كل دين وكل دفعة من هذا الجهاز. صدّر نسخة أولًا إن أردت. متابعة؟', 'Every debt and payment will be erased from this device. Export a copy first if you want one. Continue?'))) { closeComposer(); S.reset(); }
