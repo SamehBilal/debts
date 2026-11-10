@@ -16,7 +16,8 @@ const walk = (dir, test) => fs.readdirSync(path.join(root, dir), { withFileTypes
 	});
 walk('assets/js', f => /\.js$/.test(f));
 walk('assets/css', f => /\.css$/.test(f));
-walk('assets/img', f => /\.(png|svg|jpe?g|webp)$/.test(f));
+/* not the install screenshots (assets/img/screens): only the browser's install dialog shows them */
+walk('assets/img', f => /\.(png|svg|jpe?g|webp)$/.test(f) && !/[\\/]screens[\\/]/.test(f));
 
 const hash = crypto.createHash('sha1');
 list.slice(1).forEach(f => hash.update(f).update(fs.readFileSync(path.join(root, f))));

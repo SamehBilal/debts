@@ -20,7 +20,15 @@ After any change to a file, run:
 node tools/build-sw.js
 ```
 
-This rewrites `VERSION` and `PRECACHE` in `sw.js` from a hash of the files, so installed copies offer «Update now». It is a static site with no build step otherwise, and can be served as-is (e.g. GitHub Pages; `.nojekyll` is there).
+This rewrites `VERSION` and `PRECACHE` in `sw.js` from a hash of the files, so installed copies offer «Update now».
+
+The install dialog's screenshots (`assets/img/screens/`, listed under `screenshots` in the manifest) are taken from sample debts by headless Chrome, with the server running:
+
+```bash
+node tools/screens.js
+```
+
+It uses a throwaway browser profile, so your own data is never touched. They are not precached. It is a static site with no build step otherwise, and can be served as-is (e.g. GitHub Pages; `.nojekyll` is there).
 
 ## Screens
 

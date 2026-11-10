@@ -26,5 +26,13 @@
 		{ "name": "Payoff plan — خطة السداد", "short_name": "Plan", "url": "./index.html?source=pwa#plan", "icons": [{ "src": "assets/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
 		{ "name": "Places — الأماكن", "short_name": "Places", "url": "./index.html?source=pwa#places", "icons": [{ "src": "assets/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
 	],
+	"screenshots": [
+		{ "src": "assets/img/screens/wide-home.jpg", "sizes": "1280x720", "type": "image/jpeg", "form_factor": "wide", "label": "Home — الرئيسية" },
+		{ "src": "assets/img/screens/wide-plan.jpg", "sizes": "1280x720", "type": "image/jpeg", "form_factor": "wide", "label": "Payoff plan — خطة السداد" },
+		{ "src": "assets/img/screens/wide-places.jpg", "sizes": "1280x720", "type": "image/jpeg", "form_factor": "wide", "label": "Places — الأماكن" },
+		{ "src": "assets/img/screens/narrow-home.jpg", "sizes": "412x915", "type": "image/jpeg", "form_factor": "narrow", "label": "الرئيسية — Home" },
+		{ "src": "assets/img/screens/narrow-debts.jpg", "sizes": "412x915", "type": "image/jpeg", "form_factor": "narrow", "label": "الديون — Debts" },
+		{ "src": "assets/img/screens/narrow-plan.jpg", "sizes": "412x915", "type": "image/jpeg", "form_factor": "narrow", "label": "خطة السداد — Payoff plan" }
+	],
 	"prefer_related_applications": false
 }
