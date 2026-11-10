@@ -1,6 +1,7 @@
 /* Everything the app knows, kept in this browser (localStorage, key «debts-state»), nowhere else.
    Store.state = { version, settings, debts, meta }:
-     settings — lang, theme, currency, budget (a month, for the plan), strategy, order (custom plan order), nearby
+     settings — lang, theme, currency, budget (a month, for the plan), strategy, order (custom plan order), nearby,
+                who (who carries the sack: man, boy or girl)
      debts    — { id, name, kind, amount, apr, minPay, due, note, place, entries, created, updated, closed }
                 kind: person | store | card | loan | other;   place: { lat, lng, label } or null
                 entries: [{ id, type: 'pay' | 'borrow', amount, date, note }] — the balance is
@@ -21,7 +22,7 @@
 	function blank() {
 		return {
 			version: VERSION,
-			settings: { lang: '', theme: 'auto', currency: '', budget: 0, strategy: 'snowball', order: [], nearby: false },
+			settings: { lang: '', theme: 'auto', currency: '', budget: 0, strategy: 'snowball', order: [], nearby: false, who: 'man' },
 			debts: [],
 			meta: { peak: 0, created: new Date().toISOString() }
 		};
@@ -39,6 +40,7 @@
 		s.settings.strategy = ['snowball', 'avalanche', 'due', 'custom'].indexOf(st.strategy) >= 0 ? st.strategy : 'snowball';
 		s.settings.order = Array.isArray(st.order) ? st.order.filter(function (x) { return typeof x === 'string'; }) : [];
 		s.settings.nearby = !!st.nearby;
+		s.settings.who = ['man', 'boy', 'girl'].indexOf(st.who) >= 0 ? st.who : 'man';
 		s.debts = (Array.isArray(raw.debts) ? raw.debts : []).filter(function (d) { return d && d.name; }).map(cleanDebt);
 		s.meta.peak = Math.max(0, money(raw.meta && raw.meta.peak));
 		if (raw.meta && raw.meta.created) s.meta.created = raw.meta.created;
@@ -190,7 +192,7 @@
 	Store.reset = function () {
 		var keep = Store.state.settings;
 		Store.state = blank();
-		Store.state.settings.lang = keep.lang; Store.state.settings.theme = keep.theme; Store.state.settings.currency = keep.currency;
+		Store.state.settings.lang = keep.lang; Store.state.settings.theme = keep.theme; Store.state.settings.currency = keep.currency; Store.state.settings.who = keep.who;
 		commit('import');
 	};
 
